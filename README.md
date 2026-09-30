@@ -1,7 +1,12 @@
 # almasix-orbit-workflows
 
-[![PyPI](https://img.shields.io/pypi/v/almasix-orbit-workflows?label=pypi&v=0.1.0)](https://pypi.org/project/almasix-orbit-workflows/)
-[![CI](https://github.com/almasix-dev/almasix-orbit-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/almasix-dev/almasix-orbit-workflows/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://pypi.org/project/almasix-orbit-workflows/"><img alt="PyPI" src="https://img.shields.io/pypi/v/almasix-orbit-workflows?style=for-the-badge&label=pypi&color=4c1d95&v=0.1.0"></a>
+  <a href="https://github.com/almasix-dev/almasix-orbit-workflows/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/almasix-dev/almasix-orbit-workflows/ci.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/almasix-dev/almasix-orbit-workflows/tree/main/tests"><img alt="coverage" src="https://img.shields.io/badge/coverage-100%25-31c48d?style=for-the-badge&logo=codecov&logoColor=white"></a>
+  <a href="https://pypi.org/project/almasix-orbit/"><img alt="Orbit &gt;=0.4.3" src="https://img.shields.io/badge/Orbit-%3E%3D0.4.3-4c1d95?style=for-the-badge"></a>
+  <a href="https://github.com/almasix-dev/almasix-orbit-workflows/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge"></a>
+</p>
 
 Versioned workflows for [Orbit](https://orbit.almasix.com/) panels. A **published document** is the contract: the statuses, the steps, who must act, and the form on each step. A **case** follows one version of that document until it finishes. Editing the document later does not move a case that has already started.
 
