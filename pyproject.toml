@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "almasix-orbit-workflows"
+version = "0.1.0"
+description = "Orbit plugin for versioned workflows: forms, approvals, parallel branches, escalation, and signatures."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Almasix Contributors" }]
+dependencies = [
+    "almasix-orbit>=0.4.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.urls]
+Homepage = "https://orbit.almasix.com/plugins/orbit-workflows/"
+Documentation = "https://github.com/almasix-dev/almasix-orbit-workflows"
+Repository = "https://github.com/almasix-dev/almasix-orbit-workflows"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/almasix_orbit_workflows"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["almasix_orbit_workflows"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
