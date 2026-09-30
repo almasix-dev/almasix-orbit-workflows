@@ -46,7 +46,9 @@ class WorkflowEngine:
     def save(self, document: dict[str, Any]) -> dict[str, Any]:
         """Keep a draft. It cannot be started until :meth:`publish`."""
         record = self.store.definition(document["key"]) or _blank_record(document["key"])
-        record["lifecycle"] = "draft" if record["published_version"] is None else record["lifecycle"]
+        record["lifecycle"] = (
+            "draft" if record["published_version"] is None else record["lifecycle"]
+        )
         record["draft"] = document
         record["name"] = document.get("name") or document["key"]
         self.store.save_definition(record)
@@ -181,7 +183,12 @@ class WorkflowEngine:
             self.store.applied.add(effect_key)
             self._set_status(case, edge["status"])
             task["done_by"] = list(task.get("done_by") or []) + [actor.id]
-            self._log(case, "completed", actor, {"task_id": task_id, "outcome": outcome, "label": edge["label"]})
+            self._log(
+                case,
+                "completed",
+                actor,
+                {"task_id": task_id, "outcome": outcome, "label": edge["label"]},
+            )
             if not _group_satisfied(self.store, task, edge):
                 task["state"] = "done"
                 self.store.save_task(task)
@@ -204,7 +211,9 @@ class WorkflowEngine:
             person = self.directory.get(user_id)
             if person is None:
                 raise Invalid(f"No user '{user_id}'.")
-            task["assignees"] = [{"id": person.id, "label": person.label, "guest": False, "email": None}]
+            task["assignees"] = [
+                {"id": person.id, "label": person.label, "guest": False, "email": None}
+            ]
             task["unassigned"] = False
             task["claim"] = None
             task["guest_token"] = None
@@ -225,7 +234,10 @@ class WorkflowEngine:
             if case["closed"]:
                 raise Conflict("This case is already finished.")
             document = self.document_for(case["key"], case["version"])
-            action = next((item for item in document.get("case_actions") or [] if item["key"] == action_key), None)
+            action = next(
+                (item for item in document.get("case_actions") or [] if item["key"] == action_key),
+                None,
+            )
             if action is None:
                 raise Invalid(f"Unknown case action '{action_key}'.")
             self._allow_case_action(actor, action, case)
@@ -258,7 +270,12 @@ class WorkflowEngine:
                 task["state"] = "done"
                 self.store.save_task(task)
                 self._set_status(case, rule["status"])
-                self._log(case, "escalated", Person.of("system", "Scheduler"), {"task_id": task["id"], "label": rule["label"]})
+                self._log(
+                    case,
+                    "escalated",
+                    Person.of("system", "Scheduler"),
+                    {"task_id": task["id"], "label": rule["label"]},
+                )
                 self._go(case, document, rule["to"], fork_id=task.get("fork_id"), branch="finish")
                 self.store.save_case(case)
                 moved.append(task["id"])
@@ -268,10 +285,16 @@ class WorkflowEngine:
         for task in self.store.tasks.values():
             if task.get("guest_token") == token and task["state"] == "open":
                 case = self._case(task["case_id"])
-                return {"task": task, "case": case, "step": _step(self.document_for(case["key"], case["version"]), task["step"])}
+                return {
+                    "task": task,
+                    "case": case,
+                    "step": _step(self.document_for(case["key"], case["version"]), task["step"]),
+                }
         raise NotFound("This link is no longer valid.")
 
-    def simulate(self, document: dict[str, Any], script: list[dict[str, Any]], *, actor: Person) -> dict[str, Any]:
+    def simulate(
+        self, document: dict[str, Any], script: list[dict[str, Any]], *, actor: Person
+    ) -> dict[str, Any]:
         """Walk sample actions against a private store. Nothing is written to this engine."""
         trial = WorkflowEngine(directory=self.directory, clock=self.clock)
         trial.effects = dict(self.effects)
@@ -284,7 +307,13 @@ class WorkflowEngine:
                 case = trial.start(document["key"], actor, answers=action.get("answers"))
             elif case is not None and kind == "complete":
                 task = _sole_open(trial.store, case["id"], action.get("step"))
-                case = trial.complete(task["id"], actor, action["outcome"], action.get("payload"), signature=action.get("signature"))
+                case = trial.complete(
+                    task["id"],
+                    actor,
+                    action["outcome"],
+                    action.get("payload"),
+                    signature=action.get("signature"),
+                )
             elif case is not None and kind == "advance":
                 trial.clock.advance(**(action.get("delta") or {"days": 3}))
                 trial.promote_due()
@@ -333,7 +362,9 @@ class WorkflowEngine:
         if not actor.id:
             raise Forbidden("Sign in to do this.")
 
-    def _allow_case_action(self, actor: Person, action: dict[str, str], case: dict[str, Any]) -> None:
+    def _allow_case_action(
+        self, actor: Person, action: dict[str, str], case: dict[str, Any]
+    ) -> None:
         who = action.get("who") or ""
         if who == "starter" and actor.id == case["starter_id"]:
             return
@@ -343,7 +374,9 @@ class WorkflowEngine:
             return
         raise Forbidden("You cannot take this action on the case.")
 
-    def _enter(self, case: dict[str, Any], document: dict[str, Any], step_key: str, fork_id: str | None) -> None:
+    def _enter(
+        self, case: dict[str, Any], document: dict[str, Any], step_key: str, fork_id: str | None
+    ) -> None:
         visits = case["visits"]
         visits[step_key] = int(visits.get(step_key) or 0) + 1
         if visits[step_key] > int(document.get("revisit_limit") or 10):
@@ -360,7 +393,13 @@ class WorkflowEngine:
             return
         if step["kind"] == "notify":
             self._notify_step(case, document, step)
-            self._after_edge(case, document, {"fork_id": fork_id, "step": step_key}, step["edges"][0], Person.of("system", "Scheduler"))
+            self._after_edge(
+                case,
+                document,
+                {"fork_id": fork_id, "step": step_key},
+                step["edges"][0],
+                Person.of("system", "Scheduler"),
+            )
             return
         if step["kind"] == "fork":
             group = self.store.new_id()
@@ -372,11 +411,26 @@ class WorkflowEngine:
             return
         self._open_human(case, document, step, fork_id)
 
-    def _open_human(self, case: dict[str, Any], document: dict[str, Any], step: dict[str, Any], fork_id: str | None) -> None:
-        people = resolve_assignees(step.get("assignees") or [], directory=self.directory, starter_id=case["starter_id"], answers=case["answers"])
+    def _open_human(
+        self,
+        case: dict[str, Any],
+        document: dict[str, Any],
+        step: dict[str, Any],
+        fork_id: str | None,
+    ) -> None:
+        people = resolve_assignees(
+            step.get("assignees") or [],
+            directory=self.directory,
+            starter_id=case["starter_id"],
+            answers=case["answers"],
+        )
         due = None
         if step.get("escalate"):
-            due = stamp(add_duration(self.clock.now(), step["escalate"]["after"], document.get("timezone") or "UTC"))
+            due = stamp(
+                add_duration(
+                    self.clock.now(), step["escalate"]["after"], document.get("timezone") or "UTC"
+                )
+            )
         policy = step.get("policy") or "any"
         groups = _split_people(people, policy, int(step.get("quorum") or 1))
         if not groups:
@@ -410,23 +464,58 @@ class WorkflowEngine:
                 if person.guest and token:
                     self.notifier.send(person.id, "Your step is ready", token, email=person.email)
 
-    def _after_edge(self, case: dict[str, Any], document: dict[str, Any], task: dict[str, Any], edge: dict[str, Any], actor: Person) -> None:
+    def _after_edge(
+        self,
+        case: dict[str, Any],
+        document: dict[str, Any],
+        task: dict[str, Any],
+        edge: dict[str, Any],
+        actor: Person,
+    ) -> None:
         if edge.get("branch") == "abort" and task.get("fork_id"):
             self._cancel_fork(case["id"], task["fork_id"], keep=task.get("id"))
         target = edge.get("to")
         if edge.get("start_workflow"):
-            self.start(edge["start_workflow"], actor, tenant=case.get("tenant"), subject_type=case.get("subject_type"), subject_id=case.get("subject_id"), answers=dict(case["answers"]), allow_retired=False)
-        self._go(case, document, target, fork_id=task.get("fork_id"), branch=edge.get("branch") or "finish", arrived_from=task.get("step"))
+            self.start(
+                edge["start_workflow"],
+                actor,
+                tenant=case.get("tenant"),
+                subject_type=case.get("subject_type"),
+                subject_id=case.get("subject_id"),
+                answers=dict(case["answers"]),
+                allow_retired=False,
+            )
+        self._go(
+            case,
+            document,
+            target,
+            fork_id=task.get("fork_id"),
+            branch=edge.get("branch") or "finish",
+            arrived_from=task.get("step"),
+        )
         self._tell_watchers(case, document, edge.get("label") or "Updated")
 
     def _close_group(self, task: dict[str, Any]) -> None:
         for sibling in self.store.tasks_for(task["case_id"]):
-            if sibling.get("group") == task.get("group") and sibling["id"] != task["id"] and sibling["state"] == "open":
+            if (
+                sibling.get("group") == task.get("group")
+                and sibling["id"] != task["id"]
+                and sibling["state"] == "open"
+            ):
                 sibling["state"] = "cancelled"
                 sibling["guest_token"] = None
                 self.store.save_task(sibling)
 
-    def _go(self, case: dict[str, Any], document: dict[str, Any], target: str, *, fork_id: str | None, branch: str, arrived_from: str | None = None) -> None:
+    def _go(
+        self,
+        case: dict[str, Any],
+        document: dict[str, Any],
+        target: str,
+        *,
+        fork_id: str | None,
+        branch: str,
+        arrived_from: str | None = None,
+    ) -> None:
         if target == "end":
             if not _any_open(self.store, case["id"]):
                 case["closed"] = True
@@ -438,7 +527,14 @@ class WorkflowEngine:
             return
         self._enter(case, document, target, fork_id=None if branch == "abort" else fork_id)
 
-    def _arrive(self, case: dict[str, Any], document: dict[str, Any], step: dict[str, Any], arrived_from: str, fork_id: str | None) -> None:
+    def _arrive(
+        self,
+        case: dict[str, Any],
+        document: dict[str, Any],
+        step: dict[str, Any],
+        arrived_from: str,
+        fork_id: str | None,
+    ) -> None:
         arrivals: list[str] = case["arrivals"].setdefault(step["key"], [])
         if arrived_from and arrived_from not in arrivals:
             arrivals.append(arrived_from)
@@ -458,7 +554,9 @@ class WorkflowEngine:
             self._cancel_fork(case["id"], fork_id, keep=None)
         edge = step["edges"][0]
         self._set_status(case, edge["status"])
-        self._go(case, document, edge["to"], fork_id=None, branch="finish", arrived_from=step["key"])
+        self._go(
+            case, document, edge["to"], fork_id=None, branch="finish", arrived_from=step["key"]
+        )
 
     def _route(self, case: dict[str, Any], document: dict[str, Any], step: dict[str, Any]) -> None:
         chosen = None
@@ -470,16 +568,37 @@ class WorkflowEngine:
         if chosen is None:
             raise Invalid(f"Route '{step['key']}' had no matching edge.")
         self._set_status(case, chosen["status"])
-        self._log(case, "routed", Person.of("system", "Scheduler"), {"step": step["key"], "outcome": chosen["key"]})
-        self._go(case, document, chosen["to"], fork_id=None, branch=chosen.get("branch") or "finish", arrived_from=step["key"])
+        self._log(
+            case,
+            "routed",
+            Person.of("system", "Scheduler"),
+            {"step": step["key"], "outcome": chosen["key"]},
+        )
+        self._go(
+            case,
+            document,
+            chosen["to"],
+            fork_id=None,
+            branch=chosen.get("branch") or "finish",
+            arrived_from=step["key"],
+        )
 
-    def _notify_step(self, case: dict[str, Any], document: dict[str, Any], step: dict[str, Any]) -> None:
+    def _notify_step(
+        self, case: dict[str, Any], document: dict[str, Any], step: dict[str, Any]
+    ) -> None:
         del document
-        people = resolve_assignees(step.get("assignees") or [], directory=self.directory, starter_id=case["starter_id"], answers=case["answers"])
+        people = resolve_assignees(
+            step.get("assignees") or [],
+            directory=self.directory,
+            starter_id=case["starter_id"],
+            answers=case["answers"],
+        )
         self._notify_people(people, case, step["edges"][0]["label"])
         self._log(case, "notified", Person.of("system", "Scheduler"), {"step": step["key"]})
 
-    def _run_effect(self, name: str | None, case: dict[str, Any], actor: Person, effect_key: str) -> None:
+    def _run_effect(
+        self, name: str | None, case: dict[str, Any], actor: Person, effect_key: str
+    ) -> None:
         if not name:
             return
         fn = self.effects.get(name)
@@ -489,10 +608,19 @@ class WorkflowEngine:
             fn(case["answers"], {"case": case, "actor": actor, "idempotency_key": effect_key})
         except Refused:
             raise
-        except Exception as exc:  # noqa: BLE001 — app effects raise their own errors
+        except Exception as exc:
             raise Refused(str(exc)) from exc
 
-    def _sign(self, case: dict[str, Any], task: dict[str, Any], actor: Person, signature: dict[str, Any] | None, payload: dict[str, Any], files: dict[str, str] | None, intent: str) -> None:
+    def _sign(
+        self,
+        case: dict[str, Any],
+        task: dict[str, Any],
+        actor: Person,
+        signature: dict[str, Any] | None,
+        payload: dict[str, Any],
+        files: dict[str, str] | None,
+        intent: str,
+    ) -> None:
         image = (signature or {}).get("image") or payload.get("signature")
         signed_name = (signature or {}).get("name") or payload.get("signer_name")
         if not image or not signed_name:
@@ -514,7 +642,15 @@ class WorkflowEngine:
             }
         )
 
-    def _remind(self, case: dict[str, Any], task: dict[str, Any], step: dict[str, Any], document: dict[str, Any], now: Any, due: Any) -> None:
+    def _remind(
+        self,
+        case: dict[str, Any],
+        task: dict[str, Any],
+        step: dict[str, Any],
+        document: dict[str, Any],
+        now: Any,
+        due: Any,
+    ) -> None:
         zone = document.get("timezone") or "UTC"
         for duration in step.get("reminders") or []:
             if duration in (task.get("reminded") or []):
@@ -524,7 +660,9 @@ class WorkflowEngine:
                 continue
             task["reminded"] = list(task.get("reminded") or []) + [duration]
             self.store.save_task(task)
-            people = [Person.of(item["id"], item.get("label") or item["id"]) for item in task["assignees"]]
+            people = [
+                Person.of(item["id"], item.get("label") or item["id"]) for item in task["assignees"]
+            ]
             self._notify_people(people, case, f"Reminder: {step['key']} is due {task['due_at']}.")
 
     def _set_status(self, case: dict[str, Any], key: str) -> None:
@@ -555,7 +693,11 @@ class WorkflowEngine:
                 continue
             payload = event.get("payload") or {}
             sibling = self.store.task(str(payload.get("task_id") or ""))
-            if sibling and sibling.get("group") == task.get("group") and payload.get("outcome") not in {None, outcome}:
+            if (
+                sibling
+                and sibling.get("group") == task.get("group")
+                and payload.get("outcome") not in {None, outcome}
+            ):
                 raise Conflict("This outcome does not match the rest of the group.")
 
     def _notify_people(self, people: list[Person], case: dict[str, Any], body: str) -> None:
@@ -565,7 +707,12 @@ class WorkflowEngine:
             self.notifier.send(person.id, case["key"], body)
 
     def _tell_watchers(self, case: dict[str, Any], document: dict[str, Any], label: str) -> None:
-        people = resolve_assignees(document.get("watchers") or [], directory=self.directory, starter_id=case["starter_id"], answers=case["answers"])
+        people = resolve_assignees(
+            document.get("watchers") or [],
+            directory=self.directory,
+            starter_id=case["starter_id"],
+            answers=case["answers"],
+        )
         starter_person = self.directory.get(case["starter_id"]) or Person.of(case["starter_id"])
         if all(person.id != starter_person.id for person in people):
             people.append(starter_person)
@@ -587,7 +734,15 @@ class WorkflowEngine:
 
 
 def _blank_record(key: str) -> dict[str, Any]:
-    return {"key": key, "name": key, "lifecycle": "draft", "version": 0, "published_version": None, "versions": {}, "draft": {}}
+    return {
+        "key": key,
+        "name": key,
+        "lifecycle": "draft",
+        "version": 0,
+        "published_version": None,
+        "versions": {},
+        "draft": {},
+    }
 
 
 def _step(document: dict[str, Any], key: str) -> dict[str, Any]:
@@ -631,14 +786,18 @@ def _split_people(people: list[Person], policy: str, quorum: int) -> list[list[P
 
 def _group_satisfied(store: MemoryStore, task: dict[str, Any], edge: dict[str, Any]) -> bool:
     """True when this outcome is allowed to advance the group (any / all / quorum)."""
-    siblings = [item for item in store.tasks_for(task["case_id"]) if item.get("group") == task.get("group")]
+    siblings = [
+        item for item in store.tasks_for(task["case_id"]) if item.get("group") == task.get("group")
+    ]
     done = [item for item in siblings if item["id"] == task["id"] or item["state"] == "done"]
     if task["policy"] == "any":
         return True
     if task["policy"] == "all":
         return len(done) >= len(siblings)
     needed = int(task.get("quorum") or 1)
-    same = [item for item in done if item["id"] == task["id"] or _same_outcome(store, item, edge["key"])]
+    same = [
+        item for item in done if item["id"] == task["id"] or _same_outcome(store, item, edge["key"])
+    ]
     return len(same) >= needed
 
 
@@ -655,7 +814,11 @@ def _any_open(store: MemoryStore, case_id: str) -> bool:
 
 
 def _sole_open(store: MemoryStore, case_id: str, step: str | None) -> dict[str, Any]:
-    open_tasks = [task for task in store.tasks_for(case_id) if task["state"] == "open" and (step is None or task["step"] == step)]
+    open_tasks = [
+        task
+        for task in store.tasks_for(case_id)
+        if task["state"] == "open" and (step is None or task["step"] == step)
+    ]
     if not open_tasks:
         raise NotFound("No open task.")
     return open_tasks[0]

@@ -57,6 +57,7 @@ from almasix.orbit.schemas import (
     Wizard,
 )
 from almasix.orbit.support.html import e
+
 from almasix_orbit_workflows.errors import Invalid
 from almasix_orbit_workflows.predicates import matches
 
@@ -142,7 +143,7 @@ class SignatureInput:
         return (
             f'<label class="or-field or-field-Signature">{e(self._label)}'
             f'<textarea class="or-input" name="{e(self._name)}" data-signature="1" '
-            f'required>{value}</textarea></label>'
+            f"required>{value}</textarea></label>"
         )
 
 
@@ -205,7 +206,9 @@ def render_schema(nodes: list[dict[str, Any]], answers: dict[str, Any], **ctx: A
     return "".join(parts)
 
 
-def field_errors(nodes: list[dict[str, Any]], payload: dict[str, Any], answers: dict[str, Any]) -> dict[str, str]:
+def field_errors(
+    nodes: list[dict[str, Any]], payload: dict[str, Any], answers: dict[str, Any]
+) -> dict[str, str]:
     """Required fields that are visible and empty. Keys are field names."""
     errors: dict[str, str] = {}
     for node in _walk(nodes):

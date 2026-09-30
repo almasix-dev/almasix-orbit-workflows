@@ -7,8 +7,12 @@ from typing import Any
 from almasix_orbit_workflows.document import check_document
 
 
-def add_status(document: dict[str, Any], key: str, label: str, *, color: str = "gray", terminal: bool = False) -> dict[str, Any]:
-    document.setdefault("statuses", []).append({"key": key, "label": label, "color": color, "terminal": terminal})
+def add_status(
+    document: dict[str, Any], key: str, label: str, *, color: str = "gray", terminal: bool = False
+) -> dict[str, Any]:
+    document.setdefault("statuses", []).append(
+        {"key": key, "label": label, "color": color, "terminal": terminal}
+    )
     return document
 
 
@@ -46,7 +50,16 @@ def connect(
 ) -> dict[str, Any]:
     step = _find(document, step_key)
     step["edges"].append(
-        {"key": outcome, "to": to, "status": status, "label": label, "when": None, "effect": None, "start_workflow": None, "branch": branch}
+        {
+            "key": outcome,
+            "to": to,
+            "status": status,
+            "label": label,
+            "when": None,
+            "effect": None,
+            "start_workflow": None,
+            "branch": branch,
+        }
     )
     return document
 

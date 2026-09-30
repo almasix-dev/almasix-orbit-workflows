@@ -1,0 +1,113 @@
+name: Publish
+
+# Trusted Publishing (OIDC). Cutting a GitHub Release on a vX.Y.Z tag publishes
+# to PyPI. Rehearse with Actions → Publish → Run workflow → testpypi.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Index to publish to
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build + check distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build sdist + wheel
+        run: |
+          pip install build
+          python -m build
+      - name: Validate metadata
+        run: |
+          pip install twine
+          twine check --strict dist/*
+      - name: Tag must match the packaged version
+        if: github.event_name == 'release'
+        run: |
+          packaged=$(python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          tagged="${GITHUB_REF_NAME#v}"
+          echo "packaged=$packaged tagged=$tagged"
+          if [ "$packaged" != "$tagged" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pyproject version $packaged"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  verify:
+    name: Install the wheel
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install the wheel
+        run: pip install "almasix-orbit>=0.4.3" dist/*.whl
+      - name: Import package
+        run: |
+          python - <<'PY'
+          from almasix_orbit_workflows import WorkflowPlugin
+          assert WorkflowPlugin.make().get_id() == "orbit-workflows"
+          print("almasix_orbit_workflows: ok")
+          PY
+
+  testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/almasix-orbit-workflows/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/almasix-orbit-workflows/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

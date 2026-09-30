@@ -6,6 +6,7 @@ import threading
 
 import pytest
 from almasix.orbit.panels.panel import Panel
+
 from almasix_orbit_workflows import (
     CanvasPage,
     CasePage,
@@ -70,7 +71,12 @@ def publish_contract(runtime: WorkflowEngine | None = None) -> WorkflowEngine:
 
 
 def test_publish_rejects_a_broken_graph() -> None:
-    document = Workflow.make("broken").status("open", "Open").step(Step.make("a").on("go", to="end", status="open", label="Go")).document()
+    document = (
+        Workflow.make("broken")
+        .status("open", "Open")
+        .step(Step.make("a").on("go", to="end", status="open", label="Go"))
+        .document()
+    )
     runtime = WorkflowEngine()
     runtime.save(document)
     with pytest.raises(DocumentError) as caught:
@@ -84,15 +90,29 @@ def test_contract_parallel_then_signature() -> None:
     case = runtime.start("contract", sam, subject_type="Contract", subject_id="c-1", answers={})
     assert case["status"] == ""
     task = next(item for item in runtime.store.tasks_for(case["id"]) if item["state"] == "open")
-    case = runtime.complete(task["id"], sam, "submit", {"client": "Acme", "amount": "12000", "summary": "Yearly"})
+    case = runtime.complete(
+        task["id"], sam, "submit", {"client": "Acme", "amount": "12000", "summary": "Yearly"}
+    )
     assert case["status"] == "review"
-    legal = next(item for item in runtime.store.tasks_for(case["id"]) if item["step"] == "legal" and item["state"] == "open")
-    finance = next(item for item in runtime.store.tasks_for(case["id"]) if item["step"] == "finance" and item["state"] == "open")
+    legal = next(
+        item
+        for item in runtime.store.tasks_for(case["id"])
+        if item["step"] == "legal" and item["state"] == "open"
+    )
+    finance = next(
+        item
+        for item in runtime.store.tasks_for(case["id"])
+        if item["step"] == "finance" and item["state"] == "open"
+    )
     runtime.claim(legal["id"], jordan)
     runtime.complete(legal["id"], jordan, "approve", {"note": "ok"})
     assert runtime.store.case(case["id"])["status"] == "review"
     case = runtime.complete(finance["id"], ava, "approve", {})
-    sign = next(item for item in runtime.store.tasks_for(case["id"]) if item["step"] == "sign" and item["state"] == "open")
+    sign = next(
+        item
+        for item in runtime.store.tasks_for(case["id"])
+        if item["step"] == "sign" and item["state"] == "open"
+    )
     case = runtime.complete(
         sign["id"],
         sam,
@@ -104,7 +124,10 @@ def test_contract_parallel_then_signature() -> None:
     assert case["status"] == "executed"
     signed = runtime.store.signatures_for(case["id"])[0]
     assert signed["hash"] == fingerprint(signed["snapshot"], intent=signed["intent"], signer="sam")
-    assert snapshot(case["answers"], {"pdf": signed["snapshot"]["files"]["pdf"]})["answers"]["client"] == "Acme"
+    assert (
+        snapshot(case["answers"], {"pdf": signed["snapshot"]["files"]["pdf"]})["answers"]["client"]
+        == "Acme"
+    )
 
 
 def test_abort_branch_cancels_the_sibling() -> None:
@@ -117,7 +140,10 @@ def test_abort_branch_cancels_the_sibling() -> None:
     runtime.complete(legal["id"], jordan, "return", {})
     states = {item["step"]: item["state"] for item in runtime.store.tasks_for(case["id"])}
     assert states["finance"] == "cancelled"
-    assert any(item["step"] == "draft" and item["state"] == "open" for item in runtime.store.tasks_for(case["id"]))
+    assert any(
+        item["step"] == "draft" and item["state"] == "open"
+        for item in runtime.store.tasks_for(case["id"])
+    )
 
 
 def test_effect_can_refuse_and_is_not_repeated() -> None:
@@ -154,7 +180,11 @@ def test_claim_blocks_the_other_person_and_release_opens_it() -> None:
         Workflow.make("pool")
         .status("open", "Open")
         .status("done", "Done", terminal=True)
-        .step(Step.make("review", "approval").assignee(role("legal")).on("ok", to="end", status="done", label="OK"))
+        .step(
+            Step.make("review", "approval")
+            .assignee(role("legal"))
+            .on("ok", to="end", status="done", label="OK")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("pool")
@@ -197,7 +227,11 @@ def test_empty_role_stays_visible_until_reassigned() -> None:
         Workflow.make("gap")
         .status("open", "Open")
         .status("done", "Done", terminal=True)
-        .step(Step.make("review").assignee(role("missing")).on("ok", to="end", status="done", label="OK"))
+        .step(
+            Step.make("review")
+            .assignee(role("missing"))
+            .on("ok", to="end", status="done", label="OK")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("gap")
@@ -249,7 +283,9 @@ def test_withdraw_and_operator_move_use_document_statuses() -> None:
     assert all(item["state"] != "open" for item in runtime.store.tasks_for(case["id"]))
     with pytest.raises(Forbidden):
         runtime.take_case_action(case["id"], sam, "move")
-    runtime.directory._people.append({"id": "director", "name": "Dee", "roles": ["director", "operate"]})
+    runtime.directory._people.append(
+        {"id": "director", "name": "Dee", "roles": ["director", "operate"]}
+    )
     runtime.take_case_action(case["id"], Person.of("director"), "move")
     assert runtime.store.case(case["id"])["status"] == "draft"
 
@@ -272,8 +308,20 @@ def test_escalation_and_reminder_follow_the_zone() -> None:
     clock.advance(days=1)
     moved = runtime.promote_due()
     assert legal["id"] in moved
-    assert any(item["step"] == "director" and item["state"] == "open" for item in runtime.store.tasks_for(case["id"]))
-    runtime.complete(runtime.store.tasks_for(case["id"])[-1]["id"] if False else next(item["id"] for item in runtime.store.tasks_for(case["id"]) if item["step"] == "director"), Person.of("director"), "approve", {})
+    assert any(
+        item["step"] == "director" and item["state"] == "open"
+        for item in runtime.store.tasks_for(case["id"])
+    )
+    runtime.complete(
+        runtime.store.tasks_for(case["id"])[-1]["id"]
+        if False
+        else next(
+            item["id"] for item in runtime.store.tasks_for(case["id"]) if item["step"] == "director"
+        ),
+        Person.of("director"),
+        "approve",
+        {},
+    )
 
 
 def test_chained_workflow_starts_when_the_edge_says_so() -> None:
@@ -282,12 +330,21 @@ def test_chained_workflow_starts_when_the_edge_says_so() -> None:
         Workflow.make("hire")
         .status("open", "Open")
         .status("hired", "Hired", terminal=True)
-        .step(Step.make("offer", "sign").assignee(starter()).signs("sign").on("sign", to="end", status="hired", label="Sign", start_workflow="onboard"))
+        .step(
+            Step.make("offer", "sign")
+            .assignee(starter())
+            .signs("sign")
+            .on("sign", to="end", status="hired", label="Sign", start_workflow="onboard")
+        )
     )
     onboard = (
         Workflow.make("onboard")
         .status("go", "Go", terminal=True)
-        .step(Step.make("kit").assignee(user("jordan")).on("done", to="end", status="go", label="Done"))
+        .step(
+            Step.make("kit")
+            .assignee(user("jordan"))
+            .on("done", to="end", status="go", label="Done")
+        )
     )
     runtime.save(hired.document())
     runtime.save(onboard.document())
@@ -295,7 +352,9 @@ def test_chained_workflow_starts_when_the_edge_says_so() -> None:
     runtime.publish("onboard")
     case = runtime.start("hire", Person.of("sam"))
     task = next(iter(runtime.store.tasks_for(case["id"])))
-    runtime.complete(task["id"], Person.of("sam"), "sign", {"signature": "ink", "signer_name": "Sam"})
+    runtime.complete(
+        task["id"], Person.of("sam"), "sign", {"signature": "ink", "signer_name": "Sam"}
+    )
     onboard_cases = [item for item in runtime.store.cases.values() if item["key"] == "onboard"]
     assert len(onboard_cases) == 1
     assert any(item["step"] == "kit" for item in runtime.store.tasks_for(onboard_cases[0]["id"]))
@@ -308,7 +367,12 @@ def test_route_uses_answers_and_effects() -> None:
         Workflow.make("event")
         .status("wait", "Waitlisted", terminal=True)
         .status("in", "Registered", terminal=True)
-        .step(Step.make("form").assignee(starter()).schema([{"type": "TextInput", "name": "seats", "label": "Seats", "required": True}]).on("go", to="gate", status="in", label="Go"))
+        .step(
+            Step.make("form")
+            .assignee(starter())
+            .schema([{"type": "TextInput", "name": "seats", "label": "Seats", "required": True}])
+            .on("go", to="gate", status="in", label="Go")
+        )
         .step(
             Step.make("gate", "route")
             .on("full", to="end", status="wait", label="Wait", when="effect:seats_remaining")
@@ -331,12 +395,23 @@ def test_visible_when_hides_a_required_field() -> None:
     runtime = WorkflowEngine(directory=people(), clock=Clock())
     schema = [
         {"type": "TextInput", "name": "kind", "label": "Kind", "required": True},
-        {"type": "TextInput", "name": "note", "label": "Note", "required": True, "visible_when": 'answers.kind=="extra"'},
+        {
+            "type": "TextInput",
+            "name": "note",
+            "label": "Note",
+            "required": True,
+            "visible_when": 'answers.kind=="extra"',
+        },
     ]
     flow = (
         Workflow.make("show")
         .status("done", "Done", terminal=True)
-        .step(Step.make("form").assignee(starter()).schema(schema).on("go", to="end", status="done", label="Go"))
+        .step(
+            Step.make("form")
+            .assignee(starter())
+            .schema(schema)
+            .on("go", to="end", status="done", label="Go")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("show")
@@ -409,7 +484,15 @@ def test_draft_comment_and_retired_definition() -> None:
 
 
 def test_designer_round_trip_and_pages() -> None:
-    document: dict = {"key": "leave", "name": "Leave", "timezone": "UTC", "revisit_limit": 4, "stuck_status": None, "watchers": [], "case_actions": []}
+    document: dict = {
+        "key": "leave",
+        "name": "Leave",
+        "timezone": "UTC",
+        "revisit_limit": 4,
+        "stuck_status": None,
+        "watchers": [],
+        "case_actions": [],
+    }
     add_status(document, "asked", "Asked")
     add_status(document, "done", "Done", terminal=True)
     add_step(document, "request", "form")
@@ -418,7 +501,16 @@ def test_designer_round_trip_and_pages() -> None:
     connect(document, "approve", "ok", to="end", status="done", label="OK")
     assign(document, "request", starter())
     assign(document, "approve", role("legal"))
-    place_field(document, "request", {"type": "Section", "name": "s", "heading": "When", "schema": [{"type": "DatePicker", "name": "day", "label": "Day", "required": True}]})
+    place_field(
+        document,
+        "request",
+        {
+            "type": "Section",
+            "name": "s",
+            "heading": "When",
+            "schema": [{"type": "DatePicker", "name": "day", "label": "Day", "required": True}],
+        },
+    )
     assert problems(document) == []
     html = render_canvas(document)
     assert 'data-step="approve"' in html
@@ -462,9 +554,13 @@ def test_predicates_and_clock_and_bad_edges() -> None:
     clock = Clock()
     clock.advance(hours=2)
     assert clock.now().tzinfo is not None
-    bad_zone = Workflow.make("z").zone("Mars/Base").status("a", "A", terminal=True).step(
-        Step.make("s").on("g", to="end", status="a", label="G")
-    ).document()
+    bad_zone = (
+        Workflow.make("z")
+        .zone("Mars/Base")
+        .status("a", "A", terminal=True)
+        .step(Step.make("s").on("g", to="end", status="a", label="G"))
+        .document()
+    )
     assert any("timezone" in item.lower() or "Unknown" in item for item in check_document(bad_zone))
 
 
@@ -474,15 +570,31 @@ def test_field_assignee_and_expression() -> None:
         Workflow.make("pick")
         .watcher(starter())
         .status("done", "Done", terminal=True)
-        .step(Step.make("ask").assignee(starter()).schema([{"type": "TextInput", "name": "manager", "label": "Manager", "required": True}]).on("go", to="next", status="done", label="Go"))
-        .step(Step.make("next").assignee(field("manager")).assignee(expression("role_except_starter:legal")).on("ok", to="end", status="done", label="OK"))
+        .step(
+            Step.make("ask")
+            .assignee(starter())
+            .schema(
+                [{"type": "TextInput", "name": "manager", "label": "Manager", "required": True}]
+            )
+            .on("go", to="next", status="done", label="Go")
+        )
+        .step(
+            Step.make("next")
+            .assignee(field("manager"))
+            .assignee(expression("role_except_starter:legal"))
+            .on("ok", to="end", status="done", label="OK")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("pick")
     case = runtime.start("pick", Person.of("sam"))
     task = next(iter(runtime.store.tasks_for(case["id"])))
     case = runtime.complete(task["id"], Person.of("sam"), "go", {"manager": "ava"})
-    nxt = next(item for item in runtime.store.tasks_for(case["id"]) if item["step"] == "next" and item["state"] == "open")
+    nxt = next(
+        item
+        for item in runtime.store.tasks_for(case["id"])
+        if item["step"] == "next" and item["state"] == "open"
+    )
     ids = {item["id"] for item in nxt["assignees"]}
     assert "ava" in ids
     assert "sam" not in ids

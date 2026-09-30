@@ -9,7 +9,12 @@ from almasix_orbit_workflows.errors import Invalid
 _OPS = ("!=", ">=", "<=", "==", ">", "<")
 
 
-def matches(expression: str | None, answers: dict[str, Any], effects: dict[str, Any], context: dict[str, Any]) -> bool:
+def matches(
+    expression: str | None,
+    answers: dict[str, Any],
+    effects: dict[str, Any],
+    context: dict[str, Any],
+) -> bool:
     """True when ``expression`` holds. A blank expression is the default edge."""
     if expression is None or str(expression).strip() == "":
         return True

@@ -245,7 +245,7 @@ def check_document(document: dict[str, Any]) -> list[str]:
         errors.append("The start step does not exist.")
     try:
         ensure_zone(str(document.get("timezone") or "UTC"))
-    except Exception as exc:  # noqa: BLE001 — Invalid becomes a publish error
+    except Exception as exc:
         errors.append(str(exc))
     if document.get("stuck_status") and document["stuck_status"] not in statuses:
         errors.append("The stuck status is not in this document.")
@@ -292,7 +292,9 @@ def _check_step(step: dict[str, Any], steps: dict[str, Any], statuses: dict[str,
     return errors
 
 
-def _check_edge(step_key: str, edge: dict[str, Any], steps: dict[str, Any], statuses: dict[str, Any]) -> list[str]:
+def _check_edge(
+    step_key: str, edge: dict[str, Any], steps: dict[str, Any], statuses: dict[str, Any]
+) -> list[str]:
     errors: list[str] = []
     target = edge.get("to")
     if target != "end" and target not in steps:

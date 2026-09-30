@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 from almasix.orbit.panels.hooks import Plugin
 from almasix.orbit.panels.page import Page
+
 from almasix_orbit_workflows.engine import WorkflowEngine
 from almasix_orbit_workflows.views import render_canvas, render_case, render_inbox, render_task
 

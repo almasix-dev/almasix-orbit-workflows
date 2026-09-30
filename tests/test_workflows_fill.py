@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+
 from almasix_orbit_workflows import (
     Clock,
     Directory,
@@ -28,9 +29,12 @@ from almasix_orbit_workflows.views import open_tasks, render_inbox
 def test_remaining_engine_and_view_branches() -> None:
     directory = Directory([{"id": "sam", "name": "Sam", "roles": ["sales"]}])
     runtime = WorkflowEngine(directory=directory, clock=Clock())
-    draft = Workflow.make("plain").status("done", "Done", terminal=True).step(
-        Step.make("a").assignee(starter()).on("go", to="end", status="done", label="Go")
-    ).document()
+    draft = (
+        Workflow.make("plain")
+        .status("done", "Done", terminal=True)
+        .step(Step.make("a").assignee(starter()).on("go", to="end", status="done", label="Go"))
+        .document()
+    )
     runtime.save(draft)
     with pytest.raises(Invalid):
         runtime.retire("plain")
@@ -92,8 +96,16 @@ def test_remaining_engine_and_view_branches() -> None:
         )
         .step(Step.make("a").assignee(starter()).on("go", to="meet", status="work", label="Go"))
         .step(Step.make("b").assignee(starter()).on("go", to="meet", status="work", label="Go"))
-        .step(Step.make("meet", "join").joins(["a", "b"], "all").on("out", to="note", status="work", label="Out"))
-        .step(Step.make("note", "notify").assignee(starter()).on("n", to="end", status="done", label="Noted"))
+        .step(
+            Step.make("meet", "join")
+            .joins(["a", "b"], "all")
+            .on("out", to="note", status="work", label="Out")
+        )
+        .step(
+            Step.make("note", "notify")
+            .assignee(starter())
+            .on("n", to="end", status="done", label="Noted")
+        )
         .start("fork")
     )
     runtime.save(joined.document())
@@ -108,10 +120,18 @@ def test_remaining_engine_and_view_branches() -> None:
         Workflow.make("either")
         .status("work", "Work")
         .status("done", "Done", terminal=True)
-        .step(Step.make("fork", "fork").on("a", to="a", status="work", label="A").on("b", to="b", status="work", label="B"))
+        .step(
+            Step.make("fork", "fork")
+            .on("a", to="a", status="work", label="A")
+            .on("b", to="b", status="work", label="B")
+        )
         .step(Step.make("a").assignee(starter()).on("go", to="meet", status="work", label="Go"))
         .step(Step.make("b").assignee(starter()).on("go", to="meet", status="work", label="Go"))
-        .step(Step.make("meet", "join").joins(["a", "b"], "any").on("out", to="end", status="done", label="Out"))
+        .step(
+            Step.make("meet", "join")
+            .joins(["a", "b"], "any")
+            .on("out", to="end", status="done", label="Out")
+        )
         .start("fork")
     )
     runtime.save(any_join.document())
@@ -127,7 +147,24 @@ def test_remaining_engine_and_view_branches() -> None:
         .step(
             Step.make("sign", "sign")
             .assignee(starter())
-            .schema([{"type": "Repeater", "name": "lines", "label": "Lines", "schema": [{"type": "TextInput", "name": "item", "label": "Item", "placeholder": "Row", "required": True}]}])
+            .schema(
+                [
+                    {
+                        "type": "Repeater",
+                        "name": "lines",
+                        "label": "Lines",
+                        "schema": [
+                            {
+                                "type": "TextInput",
+                                "name": "item",
+                                "label": "Item",
+                                "placeholder": "Row",
+                                "required": True,
+                            }
+                        ],
+                    }
+                ]
+            )
             .on("sign", to="end", status="done", label="Sign")
         )
     )
@@ -136,15 +173,25 @@ def test_remaining_engine_and_view_branches() -> None:
     ink = runtime.start("ink", Person.of("sam"))
     ink_task = next(iter(runtime.store.tasks_for(ink["id"])))
     with pytest.raises(Invalid):
-        runtime.complete(ink_task["id"], Person.of("sam"), "sign", {"item": "A"}, signature={"name": "Sam"})
-    runtime.complete(ink_task["id"], Person.of("sam"), "sign", {"item": "A"}, signature={"name": "Sam", "image": "mark"})
+        runtime.complete(
+            ink_task["id"], Person.of("sam"), "sign", {"item": "A"}, signature={"name": "Sam"}
+        )
+    runtime.complete(
+        ink_task["id"],
+        Person.of("sam"),
+        "sign",
+        {"item": "A"},
+        signature={"name": "Sam", "image": "mark"},
+    )
 
     # Unassigned inbox row and a case the inbox cannot label.
     empty = (
         Workflow.make("empty")
         .status("open", "Open")
         .status("done", "Done", terminal=True)
-        .step(Step.make("gap").assignee(role("nobody")).on("ok", to="end", status="done", label="OK"))
+        .step(
+            Step.make("gap").assignee(role("nobody")).on("ok", to="end", status="done", label="OK")
+        )
     )
     runtime.save(empty.document())
     runtime.publish("empty")
@@ -152,14 +199,27 @@ def test_remaining_engine_and_view_branches() -> None:
     assert "Unassigned" in render_inbox(runtime, "sam")
     assert open_tasks(runtime.store, "sam")
     html = render_schema(
-        [{"type": "TextInput", "name": "hidden", "label": "H", "required": True, "visible_when": 'answers.show=="yes"'}],
+        [
+            {
+                "type": "TextInput",
+                "name": "hidden",
+                "label": "H",
+                "required": True,
+                "visible_when": 'answers.show=="yes"',
+            }
+        ],
         {"show": "no"},
     )
     assert html == ""
     parse_stamp("2026-05-01T00:00:00Z")
     clock = Clock(datetime(2026, 1, 1))
     assert clock.now().tzinfo is not None
-    resolve_assignees([{"kind": "field", "value": "who"}, {"kind": "nope"}], directory=directory, starter_id="sam", answers={})
+    resolve_assignees(
+        [{"kind": "field", "value": "who"}, {"kind": "nope"}],
+        directory=directory,
+        starter_id="sam",
+        answers={},
+    )
     resolve_assignees([guest("a@b.co")], directory=directory, starter_id="sam", answers={})
     assert _status({"statuses": []}, "missing")["color"] == "gray"
     with pytest.raises(Invalid):
@@ -168,7 +228,9 @@ def test_remaining_engine_and_view_branches() -> None:
         _edge(runtime.document_for("plain")["steps"][0], "missing")
     page = render_inbox(runtime, "sam")
     assert "empty" in page
-    assert "task" in CasePage.render(task_id=runtime.store.tasks_for(gap["id"])[0]["id"], guest=True)
+    assert "task" in CasePage.render(
+        task_id=runtime.store.tasks_for(gap["id"])[0]["id"], guest=True
+    )
     runtime.store.save_case({"id": "half", "key": "nope", "version": 1, "status": "x"})
     from almasix_orbit_workflows.views import render_case
 
@@ -182,9 +244,31 @@ def test_remaining_engine_and_view_branches() -> None:
     assert not _field_on({"schema": []}, "z")
     render_schema(
         [
-            {"type": "Grid", "name": "g", "columns": 2, "schema": [{"type": "TextInput", "name": "a", "label": "A"}]},
-            {"type": "Tabs", "name": "t", "tabs": [{"label": "T", "schema": [{"type": "TextInput", "name": "b", "label": "B", "required": True}]}]},
-            {"type": "Repeater", "name": "lines", "label": "Lines", "placeholder": "Add", "schema": [{"type": "TextInput", "name": "item", "label": "Item"}]},
+            {
+                "type": "Grid",
+                "name": "g",
+                "columns": 2,
+                "schema": [{"type": "TextInput", "name": "a", "label": "A"}],
+            },
+            {
+                "type": "Tabs",
+                "name": "t",
+                "tabs": [
+                    {
+                        "label": "T",
+                        "schema": [
+                            {"type": "TextInput", "name": "b", "label": "B", "required": True}
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": "Repeater",
+                "name": "lines",
+                "label": "Lines",
+                "placeholder": "Add",
+                "schema": [{"type": "TextInput", "name": "item", "label": "Item"}],
+            },
         ],
         {},
     )
@@ -192,8 +276,16 @@ def test_remaining_engine_and_view_branches() -> None:
 
     assert field_errors(
         [
-            {"type": "Tabs", "name": "t", "tabs": [{"schema": [{"type": "TextInput", "name": "b", "required": True}]}]},
-            {"type": "Wizard", "name": "w", "steps": [{"schema": [{"type": "TextInput", "name": "c", "required": True}]}]},
+            {
+                "type": "Tabs",
+                "name": "t",
+                "tabs": [{"schema": [{"type": "TextInput", "name": "b", "required": True}]}],
+            },
+            {
+                "type": "Wizard",
+                "name": "w",
+                "steps": [{"schema": [{"type": "TextInput", "name": "c", "required": True}]}],
+            },
         ],
         {},
         {},
@@ -214,7 +306,11 @@ def test_remaining_engine_and_view_branches() -> None:
     alone = (
         Workflow.make("solo")
         .status("done", "Done", terminal=True)
-        .step(Step.make("meet", "join").joins(["nowhere"], "all").on("out", to="end", status="done", label="Out"))
+        .step(
+            Step.make("meet", "join")
+            .joins(["nowhere"], "all")
+            .on("out", to="end", status="done", label="Out")
+        )
     )
     runtime.save(alone.document())
     runtime.publish("solo")
@@ -224,12 +320,25 @@ def test_remaining_engine_and_view_branches() -> None:
     runtime._arrive(
         case,
         doc,
-        {"key": "phantom", "join_from": ["a"], "join_policy": "all", "quorum": 1, "edges": [{"key": "o", "to": "end", "status": case["status"] or "done"}]},
+        {
+            "key": "phantom",
+            "join_from": ["a"],
+            "join_policy": "all",
+            "quorum": 1,
+            "edges": [{"key": "o", "to": "end", "status": case["status"] or "done"}],
+        },
         "a",
         None,
     )
     step = {"key": "nudge", "reminders": ["1h"]}
-    task = {"id": "nudge-task", "case_id": case["id"], "assignees": [], "reminded": [], "due_at": "2099-01-02T00:00:00Z", "state": "open"}
+    task = {
+        "id": "nudge-task",
+        "case_id": case["id"],
+        "assignees": [],
+        "reminded": [],
+        "due_at": "2099-01-02T00:00:00Z",
+        "state": "open",
+    }
     runtime.store.save_task(task)
     due = parse_stamp(task["due_at"])
     early = parse_stamp("2000-01-01T00:00:00Z")
@@ -239,8 +348,14 @@ def test_remaining_engine_and_view_branches() -> None:
         Workflow.make("side")
         .status("work", "Work")
         .status("done", "Done", terminal=True)
-        .step(Step.make("fork", "fork").on("a", to="a", status="work", label="A").on("b", to="b", status="work", label="B"))
-        .step(Step.make("a").assignee(starter()).on("leave", to="end", status="done", label="Leave"))
+        .step(
+            Step.make("fork", "fork")
+            .on("a", to="a", status="work", label="A")
+            .on("b", to="b", status="work", label="B")
+        )
+        .step(
+            Step.make("a").assignee(starter()).on("leave", to="end", status="done", label="Leave")
+        )
         .step(Step.make("b").assignee(starter()).on("go", to="end", status="done", label="Go"))
         .start("fork")
     )
@@ -248,20 +363,36 @@ def test_remaining_engine_and_view_branches() -> None:
     runtime.publish("side")
     sided = runtime.start("side", Person.of("sam"))
     first = next(item for item in runtime.store.tasks_for(sided["id"]) if item["state"] == "open")
-    runtime.complete(first["id"], Person.of("sam"), first["outcomes"] and next(iter(first["outcomes"])), {})
+    runtime.complete(
+        first["id"], Person.of("sam"), first["outcomes"] and next(iter(first["outcomes"])), {}
+    )
     stored = runtime.store.case(sided["id"])
-    runtime._arrive(stored, runtime.document_for("side"), {"key": "again", "join_from": ["x"], "join_policy": "all", "edges": [{"key": "o", "to": "end", "status": "done"}]}, "", None)
+    runtime._arrive(
+        stored,
+        runtime.document_for("side"),
+        {
+            "key": "again",
+            "join_from": ["x"],
+            "join_policy": "all",
+            "edges": [{"key": "o", "to": "end", "status": "done"}],
+        },
+        "",
+        None,
+    )
     with pytest.raises(Invalid):
         runtime._set_status(stored, "nope")
     from almasix_orbit_workflows.engine import _same_outcome
 
-    finished = next(item for item in runtime.store.tasks_for(sided["id"]) if item["state"] == "done")
+    finished = next(
+        item for item in runtime.store.tasks_for(sided["id"]) if item["state"] == "done"
+    )
     assert _same_outcome(runtime.store, finished, next(iter(finished["outcomes"]))) in {True, False}
     runtime.simulate(
         side.document(),
         [{"action": "start"}, {"action": "noop"}],
         actor=Person.of("sam"),
     )
+
     class Bare:
         pass
 

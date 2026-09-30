@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from almasix.orbit.support.html import e
+
 from almasix_orbit_workflows.design import problems
 from almasix_orbit_workflows.engine import WorkflowEngine
 from almasix_orbit_workflows.schema_tree import render_schema
@@ -41,7 +42,7 @@ def render_case(engine: WorkflowEngine, case_id: str) -> str:
         return '<p class="wf-missing">This case does not exist.</p>'
     status = _label(engine, case)
     events = "".join(
-        f'<li><time>{e(event["at"])}</time> {e(event["label"])} {e(event["kind"])}</li>'
+        f"<li><time>{e(event['at'])}</time> {e(event['label'])} {e(event['kind'])}</li>"
         for event in engine.store.events_for(case_id)
     )
     tokens = "".join(
@@ -49,12 +50,12 @@ def render_case(engine: WorkflowEngine, case_id: str) -> str:
         for task in engine.store.tasks_for(case_id)
     )
     signatures = "".join(
-        f'<li>{e(row["name"])} <code>{e(row["hash"][:12])}</code></li>'
+        f"<li>{e(row['name'])} <code>{e(row['hash'][:12])}</code></li>"
         for row in engine.store.signatures_for(case_id)
     )
     return (
         f'<article class="wf-case" data-status="{e(case.get("status") or "")}">'
-        f'<h1>{e(case["key"])}</h1>'
+        f"<h1>{e(case['key'])}</h1>"
         f'<p class="wf-status" data-color="{e(status["color"])}">{e(status["label"])}</p>'
         f'<h2>Open work</h2><ul class="wf-tokens">{tokens}</ul>'
         f'<h2>Timeline</h2><ol class="wf-timeline">{events}</ol>'
@@ -80,7 +81,7 @@ def render_task(engine: WorkflowEngine, task_id: str, *, guest: bool = False) ->
     )
     return (
         f'<form class="wf-task-form" data-task="{e(task_id)}">'
-        f"<h1>{e(step['key'])}</h1>{form}<div class=\"wf-outcomes\">{buttons}</div></form>"
+        f'<h1>{e(step["key"])}</h1>{form}<div class="wf-outcomes">{buttons}</div></form>'
     )
 
 
@@ -94,7 +95,10 @@ def render_canvas(document: dict[str, Any]) -> str:
             f'<li>{e(edge["label"])} → {e(edge["to"])} <span data-status="{e(edge["status"])}"></span></li>'
             for edge in step.get("edges") or []
         )
-        fields = "".join(f'<li>{e(node.get("type"))} {e(node.get("name") or "")}</li>' for node in step.get("schema") or [])
+        fields = "".join(
+            f"<li>{e(node.get('type'))} {e(node.get('name') or '')}</li>"
+            for node in step.get("schema") or []
+        )
         nodes.append(
             f'<section class="wf-node" data-kind="{e(step["kind"])}" data-step="{e(step["key"])}">'
             f'<h2>{e(step["key"])}</h2><ul class="wf-wires">{wires}</ul><ul class="wf-schema">{fields}</ul></section>'
@@ -115,7 +119,7 @@ def _label(engine: WorkflowEngine, case: dict[str, Any]) -> dict[str, str]:
         return {"label": "", "color": "gray"}
     try:
         document = engine.document_for(case["key"], case.get("version"))
-    except Exception:  # noqa: BLE001 — a half-built case still renders
+    except Exception:
         return {"label": case.get("status") or "", "color": "gray"}
     for item in document["statuses"]:
         if item["key"] == case.get("status"):
@@ -137,5 +141,6 @@ def open_tasks(store: MemoryStore, actor_id: str) -> list[dict[str, Any]]:
     return [
         task
         for task in store.tasks.values()
-        if task["state"] == "open" and (not task["assignees"] or any(item["id"] == actor_id for item in task["assignees"]))
+        if task["state"] == "open"
+        and (not task["assignees"] or any(item["id"] == actor_id for item in task["assignees"]))
     ]

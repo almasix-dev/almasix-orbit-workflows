@@ -77,7 +77,9 @@ def resolve_assignees(
     return people
 
 
-def _one(spec: dict[str, str], *, directory: Directory, starter_id: str, answers: dict[str, Any]) -> list[Person]:
+def _one(
+    spec: dict[str, str], *, directory: Directory, starter_id: str, answers: dict[str, Any]
+) -> list[Person]:
     kind = spec.get("kind")
     value = spec.get("value") or ""
     if kind == "user":
@@ -96,7 +98,9 @@ def _one(spec: dict[str, str], *, directory: Directory, starter_id: str, answers
         return [found or Person.of(str(picked), str(picked))]
     if kind == "expression":
         if value.startswith("manager_of:"):
-            found = directory.manager_of(starter_id if value.endswith("starter") else value.split(":", 1)[1])
+            found = directory.manager_of(
+                starter_id if value.endswith("starter") else value.split(":", 1)[1]
+            )
             return [found] if found else []
         if value.startswith("role_except_starter:"):
             role_name = value.split(":", 1)[1]

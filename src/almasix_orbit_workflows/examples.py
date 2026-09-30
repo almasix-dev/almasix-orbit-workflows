@@ -71,13 +71,26 @@ def _rest(flow: Workflow) -> Workflow:
         .assignee(user("director"))
         .on("approve", to="join", status="review", label="Approve")
     )
-    flow.step(Step.make("join", "join").joins(["legal", "finance", "director"], "quorum", 2).on("go", to="sign", status="review", label="Ready to sign"))
+    flow.step(
+        Step.make("join", "join")
+        .joins(["legal", "finance", "director"], "quorum", 2)
+        .on("go", to="sign", status="review", label="Ready to sign")
+    )
     flow.step(
         Step.make("sign", "sign")
         .assignee(starter())
         .signs("sign")
         .statement("I agree to this contract.")
-        .schema([{"type": "SignatureInput", "name": "signature", "label": "Signature", "required": True}])
+        .schema(
+            [
+                {
+                    "type": "SignatureInput",
+                    "name": "signature",
+                    "label": "Signature",
+                    "required": True,
+                }
+            ]
+        )
         .on("sign", to="end", status="executed", label="Sign")
     )
     return flow

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+
 from almasix_orbit_workflows import (
     Clock,
     Directory,
@@ -62,7 +63,16 @@ def test_validation_messages_cover_a_bad_document() -> None:
     route = _base()
     route["steps"][0]["kind"] = "route"
     route["steps"][0]["policy"] = "sometimes"
-    route["steps"][0]["edges"] = [{"key": "a", "to": "missing", "status": "missing", "label": "A", "when": "answers.a==1", "branch": "sideways"}]
+    route["steps"][0]["edges"] = [
+        {
+            "key": "a",
+            "to": "missing",
+            "status": "missing",
+            "label": "A",
+            "when": "answers.a==1",
+            "branch": "sideways",
+        }
+    ]
     route["steps"][0]["assignees"] = [{"kind": "nope"}]
     route["steps"][0]["escalate"] = {"after": "1d", "to": "nowhere", "status": "missing"}
     listed = " ".join(check_document(route))
@@ -114,7 +124,13 @@ def test_schema_renders_layouts_and_rejects_unknown_types() -> None:
                                 {
                                     "label": "Main",
                                     "schema": [
-                                        {"type": "Select", "name": "choice", "label": "Choice", "options": {"a": "A"}, "required": True},
+                                        {
+                                            "type": "Select",
+                                            "name": "choice",
+                                            "label": "Choice",
+                                            "options": {"a": "A"},
+                                            "required": True,
+                                        },
                                         {"type": "Checkbox", "name": "ok", "label": "OK"},
                                         {"type": "Text", "name": "blurb", "content": "Read this"},
                                     ],
@@ -171,7 +187,12 @@ def test_predicates_cover_each_operator() -> None:
 
 def test_directory_edges_and_notify_and_quorum() -> None:
     directory = Directory()
-    directory.replace([{"id": "sam", "name": "Sam", "roles": ["sales"], "manager_id": "boss"}, {"id": "boss", "roles": ["lead"]}])
+    directory.replace(
+        [
+            {"id": "sam", "name": "Sam", "roles": ["sales"], "manager_id": "boss"},
+            {"id": "boss", "roles": ["lead"]},
+        ]
+    )
     assert directory.get(None) is None
     assert directory.get("missing") is None
     assert directory.manager_of("sam").id == "boss"
@@ -182,7 +203,11 @@ def test_directory_edges_and_notify_and_quorum() -> None:
         Workflow.make("notes")
         .status("sent", "Sent", terminal=True)
         .status("mid", "Mid")
-        .step(Step.make("ping", "notify").assignee(user("boss")).on("go", to="vote", status="mid", label="Pinged"))
+        .step(
+            Step.make("ping", "notify")
+            .assignee(user("boss"))
+            .on("go", to="vote", status="mid", label="Pinged")
+        )
         .step(
             Step.make("vote", "approval")
             .assignee(user("sam"))
@@ -216,7 +241,9 @@ def test_directory_edges_and_notify_and_quorum() -> None:
 
 
 def test_effect_errors_release_and_simulation() -> None:
-    runtime = WorkflowEngine(directory=Directory([{"id": "sam", "name": "Sam", "roles": ["operate"]}]), clock=Clock())
+    runtime = WorkflowEngine(
+        directory=Directory([{"id": "sam", "name": "Sam", "roles": ["operate"]}]), clock=Clock()
+    )
 
     def boom(answers, context):
         del answers, context
@@ -227,7 +254,11 @@ def test_effect_errors_release_and_simulation() -> None:
         Workflow.make("money")
         .status("done", "Done", terminal=True)
         .case_action("stop", status="done", label="Stop", who="role:operate")
-        .step(Step.make("pay").assignee(starter()).on("go", to="end", status="done", label="Pay", effect="boom"))
+        .step(
+            Step.make("pay")
+            .assignee(starter())
+            .on("go", to="end", status="done", label="Pay", effect="boom")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("money")
@@ -250,9 +281,10 @@ def test_effect_errors_release_and_simulation() -> None:
     with pytest.raises(Forbidden):
         runtime.release(held["id"], Person.of("ava"))
     preview = runtime.simulate(
-        Workflow.make("money2").status("done", "Done", terminal=True).step(
-            Step.make("pay").assignee(starter()).on("go", to="end", status="done", label="Pay")
-        ).document(),
+        Workflow.make("money2")
+        .status("done", "Done", terminal=True)
+        .step(Step.make("pay").assignee(starter()).on("go", to="end", status="done", label="Pay"))
+        .document(),
         [
             {"action": "start"},
             {"action": "complete", "outcome": "go", "payload": {}},
@@ -264,7 +296,11 @@ def test_effect_errors_release_and_simulation() -> None:
     with pytest.raises(Invalid):
         runtime.simulate(flow.document(), [], actor=Person.of("sam"))
     with pytest.raises(NotFound):
-        runtime.simulate(flow.document(), [{"action": "start"}, {"action": "complete", "outcome": "go", "step": "missing"}], actor=Person.of("sam"))
+        runtime.simulate(
+            flow.document(),
+            [{"action": "start"}, {"action": "complete", "outcome": "go", "step": "missing"}],
+            actor=Person.of("sam"),
+        )
     with pytest.raises(NotFound):
         runtime.retire("missing-too")
     with pytest.raises(NotFound):
@@ -274,12 +310,18 @@ def test_effect_errors_release_and_simulation() -> None:
 
 
 def test_pages_render_the_remaining_states() -> None:
-    runtime = WorkflowEngine(directory=Directory([{"id": "sam", "name": "Sam", "roles": ["sales"]}]), clock=Clock())
+    runtime = WorkflowEngine(
+        directory=Directory([{"id": "sam", "name": "Sam", "roles": ["sales"]}]), clock=Clock()
+    )
     flow = (
         Workflow.make("box")
         .status("open", "Open")
         .status("done", "Done", terminal=True)
-        .step(Step.make("work", "approval").assignee(role("sales")).on("ok", to="end", status="done", label="OK"))
+        .step(
+            Step.make("work", "approval")
+            .assignee(role("sales"))
+            .on("ok", to="end", status="done", label="OK")
+        )
     )
     runtime.save(flow.document())
     runtime.publish("box")
@@ -297,6 +339,8 @@ def test_pages_render_the_remaining_states() -> None:
     plugin.register(panel)
     plugin.boot(panel)
     assert "wf-canvas" in CanvasPage.render(key="missing")
-    assert "Timeline" in __import__("almasix_orbit_workflows.views", fromlist=["render_case"]).render_case(runtime, case["id"])
+    assert "Timeline" in __import__(
+        "almasix_orbit_workflows.views", fromlist=["render_case"]
+    ).render_case(runtime, case["id"])
     with pytest.raises(KeyError):
         connect({"steps": []}, "nope", "x", to="end", status="done", label="X")
