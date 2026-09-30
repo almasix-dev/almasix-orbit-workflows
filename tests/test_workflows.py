@@ -540,13 +540,113 @@ def test_designer_round_trip_and_pages() -> None:
     panel.run_plugins()
     from almasix.orbit.panels.hooks import render_hook
 
-    assert "wf-canvas" in render_hook("panels::styles.after", scope=panel.get_id() if hasattr(panel, "get_id") else panel.id)
+    assert "wf-canvas" in render_hook(
+        "panels::styles.after", scope=panel.get_id() if hasattr(panel, "get_id") else panel.id
+    )
     slugs = {page.get_slug() for page in panel.get_pages()}
     assert "workflows" in slugs
     assert "Inbox" in InboxPage.render(actor_id="sam", user=sam)
     assert "Timeline" in CasePage.render(case_id=case["id"])
     assert "wf-canvas" in CanvasPage.render(document=document)
     assert current_engine() is runtime
+
+
+def test_canvas_draws_arrows_for_every_transition() -> None:
+    import re
+
+    html = render_canvas(contract_workflow().document())
+    assert "wf-arrows" in html
+    assert "wf-edge-escalate" in html
+    assert "wf-edge-abort" in html
+    assert ">Submit<" in html
+    assert ">Escalated<" in html
+    assert ">Send back<" in html
+    assert 'data-kind="end"' in html
+    found = {
+        key: (left, top)
+        for key, left, top in re.findall(
+            r'data-step="([^"]+)" style="left:(\d+)px;top:(\d+)px', html
+        )
+    }
+    assert int(found["draft"][1]) < int(found["split"][1]) < int(found["legal"][1])
+    assert int(found["legal"][0]) < int(found["director"][0]) < int(found["finance"][0])
+    assert found["legal"][1] == found["finance"][1] == found["director"][1]
+    assert int(found["sign"][1]) < int(found["end"][1])
+    assert "wf-node" not in render_canvas({"steps": []})
+    loop = {
+        "start": "only",
+        "statuses": [],
+        "steps": [
+            {
+                "key": "only",
+                "kind": "form",
+                "schema": [],
+                "edges": [
+                    {"to": "", "label": "Skip"},
+                    {"key": "again", "to": "only", "status": "a", "label": "Again"},
+                    {"key": "out", "to": "end", "status": "a", "label": "Finish"},
+                ],
+                "escalate": {"to": "next", "label": "Up"},
+            },
+            {
+                "key": "loose",
+                "kind": "form",
+                "schema": [],
+                "edges": [{"to": "tail", "label": "Later"}],
+                "escalate": {"to": "also"},
+            },
+        ],
+    }
+    drawn = render_canvas(loop)
+    assert ">Again<" in drawn
+    assert ">Finish<" in drawn
+    assert ">Up<" in drawn
+    assert 'data-kind="missing"' in drawn
+    bumped = {
+        "start": "a",
+        "steps": [
+            {
+                "key": "a",
+                "kind": "form",
+                "schema": [{"type": "TextInput", "name": "n"}],
+                "edges": [{"to": "b", "label": "Go", "branch": "finish"}],
+            },
+            {
+                "key": "b",
+                "kind": "approval",
+                "schema": [],
+                "edges": [
+                    {"to": "b", "label": "Stay"},
+                    {"to": "a", "label": "Back", "branch": "finish"},
+                ],
+                "escalate": {"to": "a", "label": "Raise"},
+            },
+        ],
+    }
+    cycled = render_canvas(bumped)
+    assert ">Back<" in cycled
+    assert ">Raise<" in cycled
+    seeded = render_canvas(
+        {
+            "start": "missing",
+            "steps": [
+                {
+                    "key": "a",
+                    "kind": "form",
+                    "edges": [{"to": "b", "label": "On", "branch": "abort"}],
+                },
+                {
+                    "key": "b",
+                    "kind": "form",
+                    "edges": [{"to": "a", "label": "Off"}],
+                    "escalate": {"to": "b"},
+                },
+            ],
+        }
+    )
+    assert ">On<" in seeded
+    assert ">Off<" in seeded
+    assert ">Escalated<" in seeded
 
 
 def test_predicates_and_clock_and_bad_edges() -> None:

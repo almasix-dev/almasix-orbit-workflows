@@ -40,7 +40,7 @@ The plugin adds three pages under **Workflows**:
 
 ## Visual design
 
-The canvas is the document: statuses on the side, each step a card, edges written as wires.
+The canvas is the document: statuses on the side, each step a card, and an arrow for every transition.
 
 ![Designer canvas, light](docs/images/canvas-light.png)
 
