@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
+from pathlib import Path
+
 from almasix.orbit.panels.hooks import Plugin
 from almasix.orbit.panels.page import Page
 
@@ -11,6 +13,12 @@ from almasix_orbit_workflows.engine import WorkflowEngine
 from almasix_orbit_workflows.views import render_canvas, render_case, render_inbox, render_task
 
 _ENGINE: WorkflowEngine | None = None
+_SHEET = Path(__file__).with_name("workflows.css").read_text(encoding="utf-8")
+
+
+def stylesheet() -> str:
+    """Panel CSS for inbox, case, and canvas. Safe to inject into a style tag."""
+    return _SHEET.replace("</style>", "<\\/style>")
 
 
 def install(engine: WorkflowEngine) -> WorkflowEngine:
@@ -95,5 +103,9 @@ class WorkflowPlugin(Plugin):
             pages([InboxPage, CasePage, CanvasPage])
 
     def boot(self, panel: Any) -> None:
-        del panel
         install(self.engine)
+        hook = getattr(panel, "render_hook", None)
+        if not callable(hook):
+            return
+        css = stylesheet()
+        hook("panels::styles.after", lambda **_ctx: f"<style>{css}</style>")

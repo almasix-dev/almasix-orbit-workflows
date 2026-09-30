@@ -1,0 +1,246 @@
+/* Workflow pages. Cream paper in light, warm charcoal in dark. */
+.wf-shell {
+  font-family: "Outfit", "Segoe UI", sans-serif;
+  color: #3d342e;
+  background: #f6f1ec;
+  padding: 1.5rem;
+}
+.wf-shell h1,
+.wf-shell h2 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.wf-shell h1 {
+  font-size: 1.35rem;
+}
+.wf-shell h2 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a776c;
+}
+.wf-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  background: #efe7e1;
+  color: #6b584e;
+}
+.wf-status[data-color="warning"] {
+  background: #fff1e4;
+  color: #b45309;
+}
+.wf-status[data-color="danger"] {
+  background: #fde8e4;
+  color: #c2410c;
+}
+.wf-status[data-color="success"] {
+  background: #e7f6ee;
+  color: #047857;
+}
+.wf-inbox ul,
+.wf-case ul,
+.wf-case ol {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.wf-task,
+.wf-case,
+.wf-node {
+  background: #fffdfb;
+  border: 1px solid #eadfd6;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(80, 48, 28, 0.05);
+}
+.wf-task {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+.wf-task a {
+  color: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  flex: 1;
+}
+.wf-claim {
+  color: #8a776c;
+  font-size: 0.8rem;
+}
+.wf-case {
+  padding: 1.25rem;
+}
+.wf-case h1 {
+  margin-bottom: 0.5rem;
+}
+.wf-case h2 {
+  margin-top: 1.1rem;
+}
+.wf-timeline li,
+.wf-tokens li,
+.wf-signatures li {
+  background: #faf6f3;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.75rem;
+}
+.wf-timeline time {
+  color: #8a776c;
+  margin-right: 0.4rem;
+}
+.wf-canvas {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+.wf-canvas aside {
+  background: #fffdfb;
+  border: 1px solid #eadfd6;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+.wf-canvas aside ul {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.wf-canvas aside li[data-terminal="true"] {
+  color: #047857;
+  font-weight: 650;
+}
+.wf-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+.wf-node {
+  width: 210px;
+  padding: 0.9rem 1rem 0.7rem;
+}
+.wf-node h2 {
+  color: #3d342e;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  font-size: 1rem;
+}
+.wf-node::before {
+  content: attr(data-kind);
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f1511b;
+}
+.wf-wires,
+.wf-schema {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}
+.wf-wires li {
+  color: #6b584e;
+}
+.wf-schema li {
+  color: #8a776c;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+.wf-task-form {
+  background: #fffdfb;
+  border: 1px solid #eadfd6;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  max-width: 40rem;
+}
+.wf-task-form h1 {
+  margin-bottom: 0.8rem;
+}
+.wf-outcomes {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.wf-outcomes button,
+.or-input,
+.or-textarea {
+  font: inherit;
+}
+.wf-outcomes button {
+  background: #f1511b;
+  color: white;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 650;
+}
+.or-field {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.55rem 0;
+}
+.or-label,
+.or-field > label,
+.wf-task-form label {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.or-input,
+.or-textarea,
+textarea.or-input {
+  border: 1px solid #eadfd6;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.6rem;
+  background: white;
+}
+.wf-empty,
+.wf-missing {
+  color: #8a776c;
+}
+
+html.dark .wf-shell {
+  color: #ebdbb2;
+  background: #1d2021;
+}
+html.dark .wf-task,
+html.dark .wf-case,
+html.dark .wf-node,
+html.dark .wf-canvas aside,
+html.dark .wf-task-form {
+  background: #282828;
+  border-color: #3c3836;
+  box-shadow: none;
+}
+html.dark .wf-node h2,
+html.dark .wf-task a {
+  color: #ebdbb2;
+}
+html.dark .wf-status {
+  background: #3c3836;
+  color: #d5c4a1;
+}
+html.dark .wf-timeline li,
+html.dark .wf-tokens li,
+html.dark .wf-signatures li {
+  background: #1d2021;
+}
+html.dark .or-input,
+html.dark .or-textarea,
+html.dark textarea.or-input {
+  background: #1d2021;
+  color: #ebdbb2;
+  border-color: #3c3836;
+}

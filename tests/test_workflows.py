@@ -123,6 +123,7 @@ def test_contract_parallel_then_signature() -> None:
     assert case["closed"] is True
     assert case["status"] == "executed"
     signed = runtime.store.signatures_for(case["id"])[0]
+    assert "Signatures" in render_case(runtime, case["id"])
     assert signed["hash"] == fingerprint(signed["snapshot"], intent=signed["intent"], signer="sam")
     assert (
         snapshot(case["answers"], {"pdf": signed["snapshot"]["files"]["pdf"]})["answers"]["client"]
@@ -515,6 +516,9 @@ def test_designer_round_trip_and_pages() -> None:
     html = render_canvas(document)
     assert 'data-step="approve"' in html
     assert "Asked" in html
+    assert "Checks" not in html
+    broken = {**document, "start": "missing"}
+    assert "Checks" in render_canvas(broken)
     runtime = WorkflowEngine(directory=people(), clock=Clock())
     runtime.save(document)
     runtime.publish("leave")
@@ -534,6 +538,9 @@ def test_designer_round_trip_and_pages() -> None:
     assert render_case(runtime, "missing")
     panel = Panel.make("admin").plugin(WorkflowPlugin.make(runtime))
     panel.run_plugins()
+    from almasix.orbit.panels.hooks import render_hook
+
+    assert "wf-canvas" in render_hook("panels::styles.after", scope=panel.get_id() if hasattr(panel, "get_id") else panel.id)
     slugs = {page.get_slug() for page in panel.get_pages()}
     assert "workflows" in slugs
     assert "Inbox" in InboxPage.render(actor_id="sam", user=sam)
