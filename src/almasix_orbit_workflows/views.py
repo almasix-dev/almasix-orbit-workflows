@@ -48,18 +48,22 @@ def render_case(engine: WorkflowEngine, case_id: str) -> str:
     tokens = "".join(
         f'<li data-state="{e(task["state"])}">{e(task["step"])}</li>'
         for task in engine.store.tasks_for(case_id)
+        if task["state"] == "open"
     )
-    signatures = "".join(
-        f"<li>{e(row['name'])} <code>{e(row['hash'][:12])}</code></li>"
-        for row in engine.store.signatures_for(case_id)
-    )
+    rows = engine.store.signatures_for(case_id)
+    signatures = ""
+    if rows:
+        items = "".join(
+            f"<li>{e(row['name'])} <code>{e(row['hash'][:12])}</code></li>" for row in rows
+        )
+        signatures = f"<h2>Signatures</h2><ul class=\"wf-signatures\">{items}</ul>"
     return (
         f'<article class="wf-case" data-status="{e(case.get("status") or "")}">'
         f"<h1>{e(case['key'])}</h1>"
         f'<p class="wf-status" data-color="{e(status["color"])}">{e(status["label"])}</p>'
         f'<h2>Open work</h2><ul class="wf-tokens">{tokens}</ul>'
         f'<h2>Timeline</h2><ol class="wf-timeline">{events}</ol>'
-        f'<h2>Signatures</h2><ul class="wf-signatures">{signatures}</ul>'
+        f"{signatures}"
         f"</article>"
     )
 
@@ -107,9 +111,10 @@ def render_canvas(document: dict[str, Any]) -> str:
         f'<li data-terminal="{str(bool(item.get("terminal"))).lower()}">{e(item["label"])}</li>'
         for item in document.get("statuses") or []
     )
+    checks = f'<h2>Checks</h2><ul class="wf-problems">{notice}</ul>' if issues else ""
     return (
         f'<div class="wf-canvas"><aside><h2>Statuses</h2><ul>{statuses}</ul>'
-        f'<h2>Checks</h2><ul class="wf-problems">{notice}</ul></aside>'
+        f"{checks}</aside>"
         f'<div class="wf-nodes">{"".join(nodes)}</div></div>'
     )
 

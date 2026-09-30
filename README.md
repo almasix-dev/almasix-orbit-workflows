@@ -38,6 +38,32 @@ The plugin adds three pages under **Workflows**:
 - **Cases** — the timeline, open tokens, and signatures for one case
 - **Designer** — the document as a canvas of steps and edges
 
+## Visual design
+
+The canvas is the document: statuses on the side, each step a card, edges written as wires.
+
+![Designer canvas, light](docs/images/canvas-light.png)
+
+![Designer canvas, dark](docs/images/canvas-dark.png)
+
+The draft step is an Orbit form. Submit is the edge label.
+
+![Draft task, light](docs/images/task-light.png)
+
+![Draft task, dark](docs/images/task-dark.png)
+
+The inbox shows the document's status color. Claiming a role task puts your name on the row.
+
+![Inbox, light](docs/images/inbox-light.png)
+
+![Inbox, dark](docs/images/inbox-dark.png)
+
+A case keeps the timeline and only the tokens still open.
+
+![Case, light](docs/images/case-light.png)
+
+![Case, dark](docs/images/case-dark.png)
+
 `Directory` is your panel's users and roles. Each record needs `id`. Optional fields are `name`, `roles` (a list of role names), and `manager_id`.
 
 ## A contract, from draft to signature
