@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
-
 from pathlib import Path
+from typing import Any, ClassVar
 
 from almasix.orbit.panels.hooks import Plugin
 from almasix.orbit.panels.page import Page
